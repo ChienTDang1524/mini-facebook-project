@@ -21,12 +21,12 @@ const loadPosts = async () => {
     
     if (response.success) {
       posts.value = response.posts
-      console.log(`✅ Đã tải ${posts.value.length} bài viết`)
+      console.log(`Đã tải ${posts.value.length} bài viết`)
     } else {
       throw new Error(response.error || 'Lỗi khi tải bài viết')
     }
   } catch (err) {
-    console.error('❌ Lỗi tải bài viết:', err)
+    console.error('Lỗi tải bài viết:', err)
     error.value = err.message || 'Lỗi khi tải bài viết'
   } finally {
     isLoading.value = false

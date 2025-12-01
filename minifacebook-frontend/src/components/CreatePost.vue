@@ -122,7 +122,7 @@ const createPost = async () => {
     const response = await api.createPost(formData)
 
     if (response.success) {
-      console.log('✅ Đăng bài thành công:', response.post)
+      console.log('Đăng bài thành công:', response.post)
       emit('post-created', response.post)
       resetForm()
     } else {
@@ -130,7 +130,7 @@ const createPost = async () => {
     }
 
   } catch (err) {
-    console.error('❌ Lỗi đăng bài:', err)
+    console.error('Lỗi đăng bài:', err)
     error.value = err.message || 'Lỗi khi đăng bài. Vui lòng thử lại!'
   } finally {
     isLoading.value = false
@@ -149,15 +149,41 @@ const resetForm = () => {
   if (imageInput) imageInput.value = ''
   if (videoInput) videoInput.value = ''
 }
+
+// Lấy URL avatar đầy đủ
+const getAvatarUrl = (user) => {
+  if (!user?.avatar) return ''
+  
+  if (user.avatar.startsWith('http')) {
+    return user.avatar
+  } else {
+    return `http://localhost:3000${user.avatar}`
+  }
+}
+
+// Hiển thị chữ cái đầu nếu không có avatar
+const getInitial = (user) => {
+  if (!user) return 'U'
+  return (user.full_name?.charAt(0) || user.username?.charAt(0) || 'U').toUpperCase()
+}
 </script>
 
 <template>
   <div class="create-post-card card shadow-sm mb-4">
     <div class="card-body">
       <div class="d-flex align-items-center mb-3">
-        <div class="user-avatar bg-primary rounded-circle d-flex align-items-center justify-content-center text-white me-3"
-             style="width: 40px; height: 40px;">
-          <span>{{ currentUser.full_name?.charAt(0) || currentUser.username?.charAt(0) }}</span>
+        <!-- Avatar section -->
+        <div class="user-avatar me-3">
+          <div v-if="getAvatarUrl(currentUser)" class="avatar-image">
+            <img 
+              :src="getAvatarUrl(currentUser)" 
+              :alt="currentUser.full_name || currentUser.username"
+              class="avatar-img"
+            >
+          </div>
+          <div v-else class="avatar-placeholder d-flex align-items-center justify-content-center text-white">
+            <span class="avatar-initial">{{ getInitial(currentUser) }}</span>
+          </div>
         </div>
         <div>
           <h6 class="mb-0 fw-bold">{{ currentUser.full_name || currentUser.username }}</h6>
@@ -338,8 +364,36 @@ const resetForm = () => {
 }
 
 .user-avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e4e6eb;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   font-weight: bold;
+  font-size: 16px;
+}
+
+.avatar-initial {
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .btn:disabled {

@@ -18,7 +18,7 @@ const __dirname = path.dirname(__filename);
 app.use(cors());
 app.use(express.json());
 
-// 🎯 SỬA LẠI ĐƯỜNG DẪN UPLOAD - DÙNG ĐƯỜNG DẪN TUYỆT ĐỐI
+// SỬA LẠI ĐƯỜNG DẪN UPLOAD - DÙNG ĐƯỜNG DẪN TUYỆT ĐỐI
 const UPLOAD_BASE_PATH = 'D:/DEMO_SOF308/minifacebook-project/minifacebook-backend/uploads';
 
 // Tạo thư mục uploads nếu chưa tồn tại
@@ -32,7 +32,7 @@ const ensureUploadDirs = () => {
   dirs.forEach(dir => {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
-      console.log('✅ Đã tạo thư mục:', dir);
+      console.log('Đã tạo thư mục:', dir);
     }
   });
 };
@@ -54,9 +54,9 @@ let db;
 async function connectDB() {
     try {
         db = await mysql.createConnection(dbConfig);
-        console.log('✅ Kết nối database thành công');
+        console.log('Kết nối database thành công');
     } catch (error) {
-        console.error('❌ Kết nối database thất bại:', error.message);
+        console.error('Kết nối database thất bại:', error.message);
     }
 }
 
@@ -162,10 +162,10 @@ app.post('/api/register', async (req, res) => {
             }
         });
 
-        console.log('✅ Đăng ký thành công cho user:', username);
+        console.log('Đăng ký thành công cho user:', username);
 
     } catch (error) {
-        console.error('❌ Lỗi đăng ký:', error);
+        console.error('Lỗi đăng ký:', error);
         res.status(500).json({
             error: 'Lỗi server'
         });
@@ -177,7 +177,7 @@ app.post('/api/login', async (req, res) => {
     try {
         const { username, password } = req.body;
 
-        console.log('🔐 Đăng nhập với:', username);
+        console.log('Đăng nhập với:', username);
 
         const [users] = await db.execute(
             'SELECT * FROM users WHERE username = ? OR email = ?',
@@ -224,10 +224,10 @@ app.post('/api/login', async (req, res) => {
             }
         });
 
-        console.log('✅ Đăng nhập thành công:', user.username);
+        console.log('Đăng nhập thành công:', user.username);
 
     } catch (error) {
-        console.error('❌ Lỗi đăng nhập:', error);
+        console.error('Lỗi đăng nhập:', error);
         res.status(500).json({
             error: 'Lỗi server'
         });
@@ -248,19 +248,141 @@ app.get('/api/me', authenticateToken, async (req, res) => {
 
         res.json({ user: users[0] });
     } catch (error) {
-        console.error('❌ Lỗi lấy thông tin user:', error);
+        console.error(' Lỗi lấy thông tin user:', error);
         res.status(500).json({ error: 'Lỗi server' });
     }
 });
 
-// 🎯 API TẠO BÀI VIẾT MỚI - ĐÃ SỬA LỖI
+
+// API CẬP NHẬT THÔNG TIN USER
+app.put('/api/profile', authenticateToken, upload.single('avatar'), async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { full_name, username, email, current_password, new_password } = req.body;
+    const avatarFile = req.file;
+
+    console.log('👤 Cập nhật profile user ID:', userId);
+
+    // Kiểm tra username và email không trùng
+    const [existingUsers] = await db.execute(
+      'SELECT id FROM users WHERE (username = ? OR email = ?) AND id != ?',
+      [username, email, userId]
+    );
+
+    if (existingUsers.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Username hoặc email đã tồn tại'
+      });
+    }
+
+    let updateFields = [];
+    let updateValues = [];
+
+    // Cập nhật thông tin cơ bản
+    if (full_name !== undefined) {
+      updateFields.push('full_name = ?');
+      updateValues.push(full_name);
+    }
+
+    if (username !== undefined) {
+      updateFields.push('username = ?');
+      updateValues.push(username);
+    }
+
+    if (email !== undefined) {
+      updateFields.push('email = ?');
+      updateValues.push(email);
+    }
+
+    // Xử lý avatar
+    if (avatarFile) {
+      const avatarPath = `/uploads/images/${avatarFile.filename}`;
+      updateFields.push('avatar = ?');
+      updateValues.push(avatarPath);
+    }
+
+    // Xử lý đổi mật khẩu
+    if (current_password && new_password) {
+      // Lấy mật khẩu hiện tại
+      const [users] = await db.execute(
+        'SELECT password FROM users WHERE id = ?',
+        [userId]
+      );
+
+      if (users.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'User không tồn tại'
+        });
+      }
+
+      const user = users[0];
+
+      // Kiểm tra mật khẩu hiện tại
+      const isCurrentPasswordValid = await bcrypt.compare(current_password, user.password);
+      if (!isCurrentPasswordValid) {
+        return res.status(400).json({
+          success: false,
+          error: 'Mật khẩu hiện tại không đúng'
+        });
+      }
+
+      // Mã hóa mật khẩu mới
+      const hashedNewPassword = await bcrypt.hash(new_password, 10);
+      updateFields.push('password = ?');
+      updateValues.push(hashedNewPassword);
+    }
+
+    // Thực hiện update
+    if (updateFields.length > 0) {
+      updateValues.push(userId);
+      const query = `UPDATE users SET ${updateFields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`;
+      
+      await db.execute(query, updateValues);
+      console.log('Đã cập nhật profile user ID:', userId);
+    }
+
+    // Lấy thông tin user mới
+    const [users] = await db.execute(
+      'SELECT id, username, email, full_name, avatar FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User không tồn tại'
+      });
+    }
+
+    const updatedUser = users[0];
+
+    res.json({
+      success: true,
+      message: 'Cập nhật thông tin thành công',
+      user: updatedUser
+    });
+
+  } catch (error) {
+    console.error('Lỗi cập nhật profile:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Lỗi server khi cập nhật thông tin: ' + error.message
+    });
+  }
+});
+
+
+
+// API TẠO BÀI VIẾT MỚI - ĐÃ SỬA LỖI
 app.post('/api/posts', authenticateToken, upload.array('media', 10), async (req, res) => {
   try {
     const { content } = req.body;
     const userId = req.user.id;
     const files = req.files || [];
 
-    console.log('📝 Tạo bài viết mới:', {
+    console.log(' Tạo bài viết mới:', {
       userId: userId,
       contentLength: content?.length || 0,
       fileCount: files.length
@@ -280,12 +402,11 @@ app.post('/api/posts', authenticateToken, upload.array('media', 10), async (req,
     );
 
     const postId = postResult.insertId;
-    console.log('✅ Đã tạo post ID:', postId);
+    console.log(' Đã tạo post ID:', postId);
 
-    // 2. Xử lý file - SỬA LẠI PHÂN LOẠI FILE
+    // 2. Xử lý file
     if (files.length > 0) {
       for (const file of files) {
-        // Tạo đường dẫn đúng để lưu vào database
         const filePath = `/uploads/${file.mimetype.startsWith('image/') ? 'images' : 'videos'}/${file.filename}`;
         
         if (file.mimetype.startsWith('image/')) {
@@ -293,20 +414,20 @@ app.post('/api/posts', authenticateToken, upload.array('media', 10), async (req,
             'INSERT INTO post_images (post_id, image_url) VALUES (?, ?)',
             [postId, filePath]
           );
-          console.log('✅ Đã lưu ảnh:', file.filename, 'với đường dẫn:', filePath);
+          console.log(' Đã lưu ảnh:', file.filename, 'với đường dẫn:', filePath);
         } else if (file.mimetype.startsWith('video/')) {
           await db.execute(
-            'INSERT INTO post_videos (post_id, video_url) VALUES (?, ?  )',
+            'INSERT INTO post_videos (post_id, video_url) VALUES (?, ?)',
             [postId, filePath]
           );
-          console.log('✅ Đã lưu video:', file.filename, 'với đường dẫn:', filePath);
+          console.log(' Đã lưu video:', file.filename, 'với đường dẫn:', filePath);
         }
       }
     }
 
-    console.log('✅ Bài viết đã được lưu thành công!');
+    console.log(' Bài viết đã được lưu thành công!');
 
-    // 3. Lấy thông tin bài viết vừa tạo
+    // 3. Lấy thông tin bài viết vừa tạo - THÊM u.avatar
     const [posts] = await db.execute(`
       SELECT p.*, u.username, u.full_name, u.avatar,
              (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes_count,
@@ -341,12 +462,12 @@ app.post('/api/posts', authenticateToken, upload.array('media', 10), async (req,
 
     res.json({
       success: true,
-      message: '🎉 Đăng bài thành công!',
+      message: ' Đăng bài thành công!',
       post: post
     });
 
   } catch (error) {
-    console.error('❌ Lỗi tạo bài viết:', error);
+    console.error(' Lỗi tạo bài viết:', error);
     
     // Xóa file đã upload nếu có lỗi
     if (req.files && req.files.length > 0) {
@@ -363,13 +484,13 @@ app.post('/api/posts', authenticateToken, upload.array('media', 10), async (req,
   }
 });
 
-// 🎯 API LẤY DANH SÁCH BÀI VIẾT
+// API LẤY DANH SÁCH BÀI VIẾT
 app.get('/api/posts', authenticateToken, async (req, res) => {
   try {
-    console.log('📖 Lấy danh sách bài viết');
+    console.log('Lấy danh sách bài viết');
 
     const [posts] = await db.execute(`
-      SELECT p.*, u.username, u.full_name, u.avatar,
+      SELECT p.*, u.username, u.full_name, u.avatar,  
              (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes_count,
              (SELECT COUNT(*) FROM comments WHERE post_id = p.id) as comments_count,
              EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = ?) as is_liked
@@ -379,7 +500,7 @@ app.get('/api/posts', authenticateToken, async (req, res) => {
       LIMIT 50
     `, [req.user.id]);
 
-    console.log(`✅ Tìm thấy ${posts.length} bài viết`);
+    console.log(` Tìm thấy ${posts.length} bài viết`);
 
     // Lấy ảnh, video và comments cho mỗi bài viết
     for (let post of posts) {
@@ -395,7 +516,7 @@ app.get('/api/posts', authenticateToken, async (req, res) => {
         [post.id]
       );
       
-      // Lấy comments
+      // Lấy comments - THÊM u.avatar CHO COMMENTS
       const [comments] = await db.execute(`
         SELECT c.*, u.username, u.full_name, u.avatar
         FROM comments c
@@ -415,14 +536,14 @@ app.get('/api/posts', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Lỗi lấy danh sách bài viết:', error);
+    console.error('Lỗi lấy danh sách bài viết:', error);
     res.status(500).json({ 
       error: 'Lỗi server khi lấy bài viết: ' + error.message
     });
   }
 });
 
-// 🎯 API XÓA BÀI VIẾT
+// API XÓA BÀI VIẾT
 app.delete('/api/posts/:id', authenticateToken, async (req, res) => {
   try {
     const postId = req.params.id;
@@ -443,10 +564,8 @@ app.delete('/api/posts/:id', authenticateToken, async (req, res) => {
     if (posts[0].user_id !== userId) {
       return res.status(403).json({ error: 'Bạn không có quyền xóa bài viết này!' });
     }
-
     await db.execute('DELETE FROM posts WHERE id = ?', [postId]);
-
-    console.log('✅ Đã xóa bài viết ID:', postId);
+    console.log(' Đã xóa bài viết ID:', postId);
 
     res.json({
       success: true,
@@ -454,20 +573,20 @@ app.delete('/api/posts/:id', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Lỗi xóa bài viết:', error);
+    console.error(' Lỗi xóa bài viết:', error);
     res.status(500).json({ 
       error: 'Lỗi server khi xóa bài viết!' 
     });
   }
 });
 
-// 🎯 API THÍCH/BỎ THÍCH BÀI VIẾT
+//  API THÍCH/BỎ THÍCH BÀI VIẾT
 app.post('/api/posts/:id/like', authenticateToken, async (req, res) => {
   try {
     const postId = req.params.id;
     const userId = req.user.id;
 
-    console.log('❤️ Xử lý like cho post ID:', postId);
+    console.log(' Xử lý like cho post ID:', postId);
 
     // Kiểm tra bài viết tồn tại
     const [posts] = await db.execute('SELECT id FROM posts WHERE id = ?', [postId]);
@@ -494,7 +613,7 @@ app.post('/api/posts/:id/like', authenticateToken, async (req, res) => {
         [postId]
       );
 
-      console.log('💔 Đã bỏ thích post ID:', postId);
+      console.log(' Đã bỏ thích post ID:', postId);
 
       res.json({
         success: true,
@@ -515,7 +634,7 @@ app.post('/api/posts/:id/like', authenticateToken, async (req, res) => {
         [postId]
       );
 
-      console.log('❤️ Đã thích post ID:', postId);
+      console.log(' Đã thích post ID:', postId);
 
       res.json({
         success: true,
@@ -525,14 +644,14 @@ app.post('/api/posts/:id/like', authenticateToken, async (req, res) => {
     }
 
   } catch (error) {
-    console.error('❌ Lỗi xử lý like:', error);
+    console.error(' Lỗi xử lý like:', error);
     res.status(500).json({ 
       error: 'Lỗi server khi xử lý like!' 
     });
   }
 });
 
-// 🎯 API THÊM BÌNH LUẬN
+//  API THÊM BÌNH LUẬN
 app.post('/api/posts/:id/comments', authenticateToken, async (req, res) => {
   try {
     const postId = req.params.id;
@@ -562,10 +681,8 @@ app.post('/api/posts/:id/comments', authenticateToken, async (req, res) => {
       SELECT c.*, u.username, u.full_name, u.avatar
       FROM comments c
       JOIN users u ON c.user_id = u.id
-      WHERE c.id = ?
-    `, [result.insertId]);
-
-    console.log('✅ Đã thêm comment ID:', result.insertId);
+      WHERE c.id = ?    `, [result.insertId]);
+    console.log(' Đã thêm comment ID:', result.insertId);
 
     res.json({
       success: true,
@@ -574,7 +691,7 @@ app.post('/api/posts/:id/comments', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Lỗi thêm comment:', error);
+    console.error(' Lỗi thêm comment:', error);
     res.status(500).json({ 
       error: 'Lỗi server khi thêm bình luận!' 
     });
@@ -602,10 +719,8 @@ app.delete('/api/comments/:id', authenticateToken, async (req, res) => {
     if (comments[0].user_id !== userId) {
       return res.status(403).json({ error: 'Bạn không có quyền xóa bình luận này!' });
     }
-
     await db.execute('DELETE FROM comments WHERE id = ?', [commentId]);
-
-    console.log('✅ Đã xóa comment ID:', commentId);
+    console.log(' Đã xóa comment ID:', commentId);
 
     res.json({
       success: true,
@@ -613,12 +728,13 @@ app.delete('/api/comments/:id', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Lỗi xóa comment:', error);
+    console.error(' Lỗi xóa comment:', error);
     res.status(500).json({ 
       error: 'Lỗi server khi xóa bình luận!' 
     });
   }
 });
+
 
 // API Cập nhật bài viết
 app.put('/api/posts/:id', authenticateToken, async (req, res) => {
@@ -627,7 +743,7 @@ app.put('/api/posts/:id', authenticateToken, async (req, res) => {
     const userId = req.user.id;
     const { content } = req.body;
 
-    console.log('✏️ Cập nhật bài viết ID:', postId);
+    console.log(' Cập nhật bài viết ID:', postId);
 
     // Kiểm tra quyền sở hữu
     const [posts] = await db.execute(
@@ -653,9 +769,9 @@ app.put('/api/posts/:id', authenticateToken, async (req, res) => {
       [content.trim(), postId]
     );
 
-    console.log('✅ Đã cập nhật bài viết ID:', postId);
+    console.log(' Đã cập nhật bài viết ID:', postId);
 
-    // Lấy thông tin bài viết đã cập nhật
+    // Lấy thông tin bài viết đã cập nhật - THÊM u.avatar
     const [updatedPosts] = await db.execute(`
       SELECT p.*, u.username, u.full_name, u.avatar,
              (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes_count,
@@ -698,12 +814,13 @@ app.put('/api/posts/:id', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Lỗi cập nhật bài viết:', error);
+    console.error(' Lỗi cập nhật bài viết:', error);
     res.status(500).json({ 
       error: 'Lỗi server khi cập nhật bài viết!' 
     });
   }
 });
+
 
 // Route xử lý 404 cho API
 app.all('/api/*', (req, res) => {
@@ -727,7 +844,7 @@ app.use((req, res) => {
 
 // Xử lý lỗi global
 app.use((error, req, res, next) => {
-  console.error('❌ Lỗi server:', error);
+  console.error(' Lỗi server:', error);
   res.status(500).json({
     success: false,
     error: 'Lỗi server nội bộ!',
@@ -737,9 +854,9 @@ app.use((error, req, res, next) => {
 
 connectDB().then(() => {
     app.listen(PORT, () => {
-        console.log(`🚀 Server đang chạy trên port ${PORT}`);
-        console.log(`📁 Đường dẫn upload: ${UPLOAD_BASE_PATH}`);
-        console.log(`🌐 URL static files: http://localhost:${PORT}/uploads/`);
-        console.log('✅ Server MiniFacebook đã khởi động thành công!');
+        console.log(` Server đang chạy trên port ${PORT}`);
+        console.log(` Đường dẫn upload: ${UPLOAD_BASE_PATH}`);
+        console.log(` URL static files: http://localhost:${PORT}/uploads/`);
+        console.log(' Server MiniFacebook đã khởi động thành công!');
     });
 });

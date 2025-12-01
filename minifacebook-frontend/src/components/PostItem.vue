@@ -1,3 +1,4 @@
+
 <script setup>
 import { ref, onMounted, inject } from 'vue'
 
@@ -14,7 +15,7 @@ const props = defineProps({
 const emit = defineEmits(['post-deleted', 'post-updated'])
 
 const isEditing = ref(false)
-const editedContent = ref(props.post.content)
+const editedContent = ref(props.post.content)   
 const showComments = ref(false)
 const newComment = ref('')
 const isLiked = ref(props.post.is_liked || false)
@@ -32,6 +33,40 @@ const formatTime = (timestamp) => {
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} giờ trước`
     if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} ngày trước`
     return postDate.toLocaleDateString('vi-VN')
+}
+
+// Lấy URL avatar đầy đủ - SỬA LẠI ĐỂ XỬ LÝ ĐÚNG
+const getAvatarUrl = (user) => {
+    if (!user) return ''
+    
+    console.log('🔍 User avatar data:', user)
+    
+    // Nếu user có avatar
+    if (user.avatar) {
+        const avatarUrl = user.avatar.startsWith('http') ? user.avatar : `http://localhost:3000${user.avatar}`
+        console.log('🖼️ Avatar URL:', avatarUrl)
+        return avatarUrl
+    }
+    
+    console.log('❌ No avatar found for user:', user.username)
+    // Nếu không có avatar, trả về chuỗi rỗng để hiển thị chữ cái đầu
+    return ''
+}
+
+// Kiểm tra xem URL ảnh có tồn tại không
+const checkImageExists = (url) => {
+    return new Promise((resolve) => {
+        const img = new Image()
+        img.onload = () => resolve(true)
+        img.onerror = () => resolve(false)
+        img.src = url
+    })
+}
+
+// Hiển thị chữ cái đầu nếu không có avatar
+const getInitial = (user) => {
+    if (!user) return 'U'
+    return (user.full_name?.charAt(0) || user.username?.charAt(0) || 'U').toUpperCase()
 }
 
 // Xóa bài viết
@@ -60,13 +95,12 @@ const startEditing = () => {
     hideDropdown()
 }
 
-// Lưu chỉnh sửa - ĐÃ SỬA LỖI TOKEN
+// Lưu chỉnh sửa
 const saveEdit = async () => {
     if (!editedContent.value.trim()) return
 
     isLoading.value = true
     try {
-        // Sử dụng api instance thay vì fetch trực tiếp
         const response = await api.updatePost(props.post.id, editedContent.value.trim())
         
         if (response.success) {
@@ -88,6 +122,7 @@ const cancelEdit = () => {
     isEditing.value = false
     editedContent.value = props.post.content
 }
+
 // Like/unlike bài viết
 const likePost = async () => {
     if (isLoading.value) return
@@ -98,7 +133,6 @@ const likePost = async () => {
         if (response.success) {
             isLiked.value = response.liked
 
-            // Cập nhật likes count
             const updatedPost = {
                 ...props.post,
                 likes_count: response.liked ? props.post.likes_count + 1 : Math.max(0, props.post.likes_count - 1),
@@ -121,7 +155,6 @@ const addComment = async () => {
     try {
         const response = await api.addComment(props.post.id, newComment.value)
         if (response.success) {
-            // Thêm comment mới vào danh sách
             const updatedPost = {
                 ...props.post,
                 comments: [...props.post.comments, response.comment],
@@ -145,7 +178,6 @@ const deleteComment = async (commentId) => {
     try {
         const response = await api.deleteComment(commentId)
         if (response.success) {
-            // Xóa comment khỏi danh sách
             const updatedPost = {
                 ...props.post,
                 comments: props.post.comments.filter(comment => comment.id !== commentId),
@@ -182,18 +214,17 @@ const handleClickOutside = (event) => {
     }
 }
 
-// Method để tính toán class cho ảnh - Giống Facebook
+// Method để tính toán class cho ảnh
 const getImageColumnClass = (mediaCount) => {
     if (mediaCount === 1) return 'col-12'
     if (mediaCount === 2) return 'col-6'
     if (mediaCount === 3) return 'col-4'
-    if (mediaCount === 4) return 'col-6' // 2x2 grid
-    return 'col-4' // 3+ ảnh hiển thị grid
+    if (mediaCount === 4) return 'col-6'
+    return 'col-4'
 }
 
 // Method mở ảnh lớn
 const openImageModal = (imageUrl) => {
-    // Đảm bảo URL đầy đủ nếu cần
     const fullUrl = imageUrl.startsWith('http') ? imageUrl : `http://localhost:3000${imageUrl}`
     window.open(fullUrl, '_blank')
 }
@@ -201,8 +232,21 @@ const openImageModal = (imageUrl) => {
 // Method để lấy URL đầy đủ cho media
 const getFullMediaUrl = (url) => {
     if (!url) return ''
-    // Nếu URL đã có http thì giữ nguyên, nếu không thì thêm base URL
     return url.startsWith('http') ? url : `http://localhost:3000${url}`
+}
+
+// Xử lý lỗi ảnh
+const handleImageError = (event, user) => {
+    console.log('❌ Lỗi tải ảnh avatar:', event.target.src)
+    event.target.style.display = 'none'
+    // Ẩn ảnh và hiển thị placeholder
+    const parent = event.target.parentElement
+    if (parent) {
+        const placeholder = parent.querySelector('.avatar-placeholder')
+        if (placeholder) {
+            placeholder.style.display = 'flex'
+        }
+    }
 }
 
 onMounted(() => {
@@ -217,13 +261,23 @@ onMounted(() => {
             <div class="post-header px-3 pt-3">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="d-flex align-items-center">
-                        <div class="user-avatar bg-primary rounded-circle d-flex align-items-center justify-content-center text-white me-3"
-                            style="width: 40px; height: 40px;">
-                            <span>{{ post.full_name?.charAt(0) || post.username?.charAt(0) }}</span>
+                        <!-- Avatar user -->
+                        <div class="user-avatar me-3 position-relative">
+                            <div v-if="getAvatarUrl(post)" class="avatar-image">
+                                <img 
+                                    :src="getAvatarUrl(post)" 
+                                    :alt="post.full_name || post.username" 
+                                    class="rounded-circle"
+                                    @error="(e) => handleImageError(e, post)"
+                                >
+                            </div>
+                            <div v-else class="avatar-placeholder bg-primary rounded-circle d-flex align-items-center justify-content-center text-white">
+                                <span class="avatar-initial">{{ getInitial(post) }}</span>
+                            </div>
                         </div>
                         <div>
-                            <h6 class="mb-0 fw-bold">{{ post.full_name || post.username }}</h6>
-                            <small class="text-muted">{{ formatTime(post.created_at) }}</small>
+                            <h6 class="mb-0 fw-bold user-name">{{ post.full_name || post.username }}</h6>
+                            <small class="text-muted post-time">{{ formatTime(post.created_at) }}</small>
                         </div>
                     </div>
 
@@ -265,7 +319,7 @@ onMounted(() => {
                 <p v-else class="mb-0 post-text">{{ post.content }}</p>
             </div>
 
-            <!-- Hiển thị ảnh - Layout giống Facebook -->
+            <!-- Hiển thị ảnh -->
             <div v-if="post.images && post.images.length > 0" class="post-images mt-2">
                 <div class="row g-1 mx-0">
                     <div v-for="(image, index) in post.images" :key="index"
@@ -276,7 +330,7 @@ onMounted(() => {
                 </div>
             </div>
 
-            <!-- Hiển thị video - Giống Facebook -->
+            <!-- Hiển thị video -->
             <div v-if="post.videos && post.videos.length > 0" class="post-videos mt-2">
                 <div class="row g-1 mx-0">
                     <div v-for="(video, index) in post.videos" :key="index" class="col-12 video-container">
@@ -331,9 +385,19 @@ onMounted(() => {
                 <!-- Form bình luận -->
                 <div class="comment-form p-3">
                     <div class="d-flex align-items-center gap-2">
-                        <div class="user-avatar-sm bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white"
-                            style="width: 32px; height: 32px;">
-                            <small>{{ currentUser.full_name?.charAt(0) || currentUser.username?.charAt(0) }}</small>
+                        <!-- Avatar current user trong comment form -->
+                        <div class="user-avatar-sm position-relative">
+                            <div v-if="getAvatarUrl(currentUser)" class="avatar-image-sm">
+                                <img 
+                                    :src="getAvatarUrl(currentUser)" 
+                                    :alt="currentUser.full_name || currentUser.username" 
+                                    class="rounded-circle"
+                                    @error="(e) => handleImageError(e, currentUser)"
+                                >
+                            </div>
+                            <div v-else class="avatar-placeholder-sm bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white">
+                                <small class="avatar-initial-sm">{{ getInitial(currentUser) }}</small>
+                            </div>
                         </div>
                         <div class="flex-grow-1">
                             <input v-model="newComment" type="text" class="form-control comment-input"
@@ -351,9 +415,19 @@ onMounted(() => {
                 <div v-if="post.comments && post.comments.length > 0" class="comments-list px-3 pb-3">
                     <div v-for="comment in post.comments" :key="comment.id" class="comment-item mb-2">
                         <div class="d-flex gap-2">
-                            <div class="user-avatar-sm bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0"
-                                style="width: 32px; height: 32px;">
-                                <small>{{ comment.full_name?.charAt(0) || comment.username?.charAt(0) }}</small>
+                            <!-- Avatar user comment -->
+                            <div class="user-avatar-sm position-relative flex-shrink-0">
+                                <div v-if="getAvatarUrl(comment)" class="avatar-image-sm">
+                                    <img 
+                                        :src="getAvatarUrl(comment)" 
+                                        :alt="comment.full_name || comment.username" 
+                                        class="rounded-circle"
+                                        @error="(e) => handleImageError(e, comment)"
+                                    >
+                                </div>
+                                <div v-else class="avatar-placeholder-sm bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white">
+                                    <small class="avatar-initial-sm">{{ getInitial(comment) }}</small>
+                                </div>
                             </div>
                             <div class="flex-grow-1">
                                 <div class="comment-content bg-light rounded p-2">
@@ -406,7 +480,90 @@ onMounted(() => {
     line-height: 1.4;
 }
 
-/* CSS cho ảnh - Layout giống Facebook */
+/* CSS cho avatar */
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    position: relative;
+}
+
+.avatar-image {
+    width: 100%;
+    height: 100%;
+}
+
+.avatar-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid #e4e6eb;
+}
+
+.avatar-placeholder {
+    width: 40px;
+    height: 40px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-initial {
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+}
+
+/* Avatar nhỏ cho comment */
+.user-avatar-sm {
+    width: 32px;
+    height: 32px;
+    position: relative;
+}
+
+.avatar-image-sm {
+    width: 100%;
+    height: 100%;
+}
+
+.avatar-image-sm img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 1px solid #e4e6eb;
+}
+
+.avatar-placeholder-sm {
+    width: 32px;
+    height: 32px;
+    font-weight: 500;
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-initial-sm {
+    font-size: 12px;
+    font-weight: 500;
+    color: white;
+}
+
+.user-name {
+    color: #050505;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.post-time {
+    font-size: 13px;
+    color: #65676b;
+}
+
+/* CSS cho ảnh bài viết */
 .post-images {
     width: 100%;
     margin: 8px 0;
@@ -436,13 +593,11 @@ onMounted(() => {
 }
 
 /* Layout cho số lượng ảnh khác nhau */
-/* 1 ảnh - chiếm toàn bộ chiều rộng */
 .image-container.col-12 {
     aspect-ratio: 1.25;
     border-radius: 8px;
 }
 
-/* 2 ảnh - 2 cột bằng nhau */
 .image-container.col-6 {
     aspect-ratio: 1;
 }
@@ -455,12 +610,10 @@ onMounted(() => {
     border-radius: 0 8px 8px 0;
 }
 
-/* 3 ảnh trở lên - hình vuông */
 .image-container.col-4 {
     aspect-ratio: 1;
 }
 
-/* 3 ảnh - góc bo tròn */
 .image-container.col-4:first-child {
     border-radius: 8px 0 0 0;
 }
@@ -473,7 +626,6 @@ onMounted(() => {
     border-radius: 0 0 8px 0;
 }
 
-/* 4 ảnh - grid 2x2 */
 .image-container.col-6:nth-child(1) {
     border-radius: 8px 0 0 0;
 }
@@ -490,7 +642,7 @@ onMounted(() => {
     border-radius: 0 0 8px 0;
 }
 
-/* CSS cho video - Giống Facebook */
+/* CSS cho video */
 .post-videos {
     width: 100%;
     margin: 8px 0;
@@ -583,16 +735,6 @@ onMounted(() => {
     color: #050505;
     margin-bottom: 4px;
     line-height: 1.4;
-}
-
-.user-avatar,
-.user-avatar-sm {
-    font-weight: bold;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.user-avatar-sm {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
 }
 
 /* Custom dropdown styles */
