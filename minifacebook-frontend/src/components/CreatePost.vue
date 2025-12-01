@@ -43,7 +43,6 @@ const handleImageUpload = (event) => {
       reader.readAsDataURL(file)
     })
     
-    // Reset input
     event.target.value = ''
   }
 }
@@ -75,8 +74,7 @@ const handleVideoUpload = (event) => {
       }
       reader.readAsDataURL(file)
     })
-    
-    // Reset input
+
     event.target.value = ''
   }
 }
@@ -99,21 +97,19 @@ const createPost = async () => {
   error.value = ''
 
   try {
-    // Tạo FormData để gửi file
+
     const formData = new FormData()
     formData.append('content', newPost.value.content.trim())
 
-    // Thêm ảnh vào FormData
     imagePreviews.value.forEach((preview, index) => {
       formData.append('media', preview.file)
     })
 
-    // Thêm video vào FormData
     videoPreviews.value.forEach((preview, index) => {
       formData.append('media', preview.file)
     })
 
-    console.log('📤 Đang đăng bài...', {
+    console.log(' Đang đăng bài...', {
       content: newPost.value.content,
       images: imagePreviews.value.length,
       videos: videoPreviews.value.length
@@ -142,15 +138,13 @@ const resetForm = () => {
   imagePreviews.value = []
   videoPreviews.value = []
   error.value = ''
-  
-  // Reset file inputs
+ 
   const imageInput = document.getElementById('imageUpload')
   const videoInput = document.getElementById('videoUpload')
   if (imageInput) imageInput.value = ''
   if (videoInput) videoInput.value = ''
 }
 
-// Lấy URL avatar đầy đủ
 const getAvatarUrl = (user) => {
   if (!user?.avatar) return ''
   
@@ -161,7 +155,6 @@ const getAvatarUrl = (user) => {
   }
 }
 
-// Hiển thị chữ cái đầu nếu không có avatar
 const getInitial = (user) => {
   if (!user) return 'U'
   return (user.full_name?.charAt(0) || user.username?.charAt(0) || 'U').toUpperCase()
@@ -172,7 +165,7 @@ const getInitial = (user) => {
   <div class="create-post-card card shadow-sm mb-4">
     <div class="card-body">
       <div class="d-flex align-items-center mb-3">
-        <!-- Avatar section -->
+
         <div class="user-avatar me-3">
           <div v-if="getAvatarUrl(currentUser)" class="avatar-image">
             <img 
@@ -191,7 +184,6 @@ const getInitial = (user) => {
         </div>
       </div>
       
-      <!-- Error message -->
       <div v-if="error" class="alert alert-danger alert-dismissible fade show mb-3">
         {{ error }}
         <button type="button" class="btn-close" @click="error = ''"></button>
@@ -210,8 +202,6 @@ const getInitial = (user) => {
           <small class="text-muted">{{ newPost.content.length }}/500</small>
         </div>
       </div>
-
-      <!-- Hiển thị nhiều ảnh preview -->
       <div v-if="imagePreviews.length > 0" class="mb-3">
         <h6 class="small text-muted mb-2">Ảnh đã chọn ({{ imagePreviews.length }}/10):</h6>
         <div class="row g-2">
@@ -232,8 +222,6 @@ const getInitial = (user) => {
           </div>
         </div>
       </div>
-
-      <!-- Hiển thị video preview -->
       <div v-if="videoPreviews.length > 0" class="mb-3">
         <h6 class="small text-muted mb-2">Video đã chọn ({{ videoPreviews.length }}/3):</h6>
         <div class="row g-2">
@@ -261,7 +249,6 @@ const getInitial = (user) => {
         <div class="d-flex justify-content-between align-items-center">
           <span class="text-muted small">Thêm vào bài viết</span>
           <div class="d-flex gap-2">
-            <!-- Nút chọn ảnh -->
             <label for="imageUpload" class="btn btn-sm btn-outline-primary border-0 text-primary" 
                    :class="{ 'disabled': isLoading }"
                    style="cursor: pointer;" 
@@ -277,9 +264,7 @@ const getInitial = (user) => {
               class="d-none"
               :disabled="isLoading"
             >
-            
-            <!-- Nút chọn video -->
-            <label for="videoUpload" class="btn btn-sm btn-outline-success border-0 text-success"
+                        <label for="videoUpload" class="btn btn-sm btn-outline-success border-0 text-success"
                    :class="{ 'disabled': isLoading }"
                    style="cursor: pointer;" 
                    title="Thêm video">

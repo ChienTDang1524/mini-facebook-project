@@ -9,8 +9,6 @@ const currentUser = inject('currentUser')
 const posts = ref([])
 const isLoading = ref(false)
 const error = ref('')
-
-// Load posts từ API
 const loadPosts = async () => {
   isLoading.value = true
   error.value = ''
@@ -32,29 +30,23 @@ const loadPosts = async () => {
     isLoading.value = false
   }
 }
-
-// Xử lý khi có bài viết mới
 const handlePostCreated = (newPost) => {
-  console.log('➕ Bài viết mới được tạo:', newPost)
+  console.log(' Bài viết mới được tạo:', newPost)
   posts.value.unshift(newPost)
 }
 
-// Xử lý khi bài viết bị xóa
 const handlePostDeleted = (postId) => {
-  console.log('🗑 Bài viết bị xóa:', postId)
+  console.log(' Bài viết bị xóa:', postId)
   posts.value = posts.value.filter(post => post.id !== postId)
 }
-
-// Xử lý khi bài viết được cập nhật
 const handlePostUpdated = (updatedPost) => {
-  console.log('✏️ Bài viết được cập nhật:', updatedPost.id)
+  console.log(' Bài viết được cập nhật:', updatedPost.id)
   const index = posts.value.findIndex(post => post.id === updatedPost.id)
   if (index !== -1) {
     posts.value[index] = updatedPost
   }
 }
 
-// Load posts khi component mounted
 onMounted(() => {
   if (currentUser) {
     loadPosts()
@@ -65,12 +57,10 @@ onMounted(() => {
 <template>
   <div class="post-list">
     <div class="row">
-      <!-- Sidebar trái - Form tạo bài viết -->
       <div class="col-lg-4 mb-4">
         <CreatePost @post-created="handlePostCreated" />
       </div>
       
-      <!-- Main content - Danh sách bài viết -->
       <div class="col-lg-8">
         <div class="d-flex justify-content-between align-items-center mb-4">
           <h4 class="mb-0">Bài viết gần đây</h4>
@@ -87,14 +77,12 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Error message -->
         <div v-if="error" class="alert alert-danger alert-dismissible fade show mb-4">
           <i class="bi bi-exclamation-triangle me-2"></i>
           {{ error }}
           <button type="button" class="btn-close" @click="error = ''"></button>
         </div>
 
-        <!-- Loading -->
         <div v-if="isLoading" class="text-center py-5">
           <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">Loading...</span>
@@ -102,7 +90,6 @@ onMounted(() => {
           <p class="mt-2 text-muted">Đang tải bài viết...</p>
         </div>
 
-        <!-- Danh sách bài viết -->
         <div v-else-if="posts.length > 0">
           <PostItem 
             v-for="post in posts" 
@@ -112,9 +99,7 @@ onMounted(() => {
             @post-updated="handlePostUpdated"
           />
         </div>
-        
-        <!-- Empty state -->
-        <div v-else class="text-center py-5">
+                <div v-else class="text-center py-5">
           <div class="card">
             <div class="card-body py-5">
               <i class="bi bi-newspaper display-1 text-muted mb-3"></i>

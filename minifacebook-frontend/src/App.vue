@@ -6,12 +6,10 @@ import UserProfile from './components/UserProfile.vue'
 
 const currentUser = ref(null)
 const isLoading = ref(true)
-const currentView = ref('posts') // 'posts' hoặc 'profile'
+const currentView = ref('posts')
 
-// Provide currentUser to all components
 provide('currentUser', currentUser)
 
-// Kiểm tra đăng nhập khi app khởi động
 onMounted(async () => {
   const token = localStorage.getItem('minifacebook_token')
   const userData = localStorage.getItem('minifacebook_user')
@@ -29,7 +27,7 @@ onMounted(async () => {
 
 const handleLoginSuccess = (user) => {
   currentUser.value = user
-  console.log('✅ Đăng nhập thành công:', user.username)
+  console.log(' Đăng nhập thành công:', user.username)
 }
 
 const logout = () => {
@@ -37,7 +35,7 @@ const logout = () => {
   localStorage.removeItem('minifacebook_user')
   currentUser.value = null
   currentView.value = 'posts'
-  console.log('🚪 Đã đăng xuất')
+  console.log(' Đã đăng xuất')
 }
 
 const showProfile = () => {
@@ -48,7 +46,6 @@ const showPosts = () => {
   currentView.value = 'posts'
 }
 
-// Lấy URL avatar đầy đủ
 const getAvatarUrl = (user) => {
   if (!user?.avatar) return ''
   
@@ -59,15 +56,14 @@ const getAvatarUrl = (user) => {
   }
 }
 
-// Hiển thị chữ cái đầu nếu không có avatar
 const getInitial = (user) => {
   if (!user) return 'U'
   return (user.full_name?.charAt(0) || user.username?.charAt(0) || 'U').toUpperCase()
 }
 
-// Xử lý lỗi ảnh
+
 const handleImageError = (event, user) => {
-  console.log('❌ Lỗi tải ảnh avatar:', event.target.src)
+  console.log(' Lỗi tải ảnh avatar:', event.target.src)
   event.target.style.display = 'none'
   const parent = event.target.parentElement
   if (parent) {
@@ -81,7 +77,6 @@ const handleImageError = (event, user) => {
 
 <template>
   <div class="minifacebook-app">
-    <!-- Loading -->
     <div v-if="isLoading" class="loading-screen">
       <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">Loading...</span>
@@ -89,7 +84,6 @@ const handleImageError = (event, user) => {
       <p class="mt-2">Đang tải...</p>
     </div>
 
-    <!-- Header khi đã đăng nhập -->
     <header v-else-if="currentUser" class="bg-primary text-white py-3 mb-4">
       <div class="container">
         <div class="row align-items-center">
@@ -102,7 +96,6 @@ const handleImageError = (event, user) => {
           <div class="col-auto">
             <div class="d-flex align-items-center gap-3">
               <div class="d-flex align-items-center">
-                <!-- Avatar trong header -->
                 <div class="user-avatar me-2">
                   <div v-if="getAvatarUrl(currentUser)" class="avatar-image">
                     <img 
@@ -119,7 +112,6 @@ const handleImageError = (event, user) => {
                 <span class="user-name">{{ currentUser.full_name || currentUser.username }}</span>
               </div>
               
-              <!-- Nút chỉnh sửa profile -->
               <button v-if="currentView === 'posts'" @click="showProfile" class="btn btn-outline-light btn-sm">
                 <i class="bi bi-person-gear me-1"></i>
                 Hồ sơ
@@ -136,17 +128,15 @@ const handleImageError = (event, user) => {
     </header>
 
     <main class="container">
-      <!-- Màn hình đăng nhập/đăng ký -->
+
       <div v-if="!currentUser && !isLoading" class="row justify-content-center">
         <div class="col-md-6 col-lg-5">
           <LoginRegister @login-success="handleLoginSuccess" />
         </div>
       </div>
 
-      <!-- Màn hình chính khi đã đăng nhập -->
       <PostList v-else-if="currentUser && currentView === 'posts'" />
-      
-      <!-- Màn hình chỉnh sửa profile -->
+
       <UserProfile 
         v-else-if="currentUser && currentView === 'profile'" 
         @back="showPosts" 
@@ -174,7 +164,6 @@ header {
   background-color: #f0f2f5;
 }
 
-/* CSS cho avatar trong header */
 .user-avatar {
   width: 32px;
   height: 32px;
@@ -214,7 +203,7 @@ header {
   font-weight: 500;
 }
 
-/* Responsive cho mobile */
+
 @media (max-width: 768px) {
   .user-name {
     display: none;

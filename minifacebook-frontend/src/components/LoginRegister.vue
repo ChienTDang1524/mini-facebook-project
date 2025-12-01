@@ -34,7 +34,7 @@ const submitForm = async () => {
         password: form.value.password
       })
     } else {
-      // Validate đăng ký
+   
       if (!form.value.full_name.trim()) {
         throw new Error('Vui lòng nhập họ và tên')
       }

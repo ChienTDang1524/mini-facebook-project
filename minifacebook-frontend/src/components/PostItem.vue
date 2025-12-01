@@ -21,8 +21,6 @@ const newComment = ref('')
 const isLiked = ref(props.post.is_liked || false)
 const isLoading = ref(false)
 const showDropdown = ref(false)
-
-// Format thời gian
 const formatTime = (timestamp) => {
     const now = new Date()
     const postDate = new Date(timestamp)
@@ -34,26 +32,21 @@ const formatTime = (timestamp) => {
     if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} ngày trước`
     return postDate.toLocaleDateString('vi-VN')
 }
-
-// Lấy URL avatar đầy đủ - SỬA LẠI ĐỂ XỬ LÝ ĐÚNG
 const getAvatarUrl = (user) => {
     if (!user) return ''
     
-    console.log('🔍 User avatar data:', user)
+    console.log(' User avatar data:', user)
     
-    // Nếu user có avatar
     if (user.avatar) {
         const avatarUrl = user.avatar.startsWith('http') ? user.avatar : `http://localhost:3000${user.avatar}`
-        console.log('🖼️ Avatar URL:', avatarUrl)
+        console.log(' Avatar URL:', avatarUrl)
         return avatarUrl
     }
     
-    console.log('❌ No avatar found for user:', user.username)
-    // Nếu không có avatar, trả về chuỗi rỗng để hiển thị chữ cái đầu
+    console.log(' No avatar found for user:', user.username)
     return ''
 }
 
-// Kiểm tra xem URL ảnh có tồn tại không
 const checkImageExists = (url) => {
     return new Promise((resolve) => {
         const img = new Image()
@@ -63,13 +56,11 @@ const checkImageExists = (url) => {
     })
 }
 
-// Hiển thị chữ cái đầu nếu không có avatar
 const getInitial = (user) => {
     if (!user) return 'U'
     return (user.full_name?.charAt(0) || user.username?.charAt(0) || 'U').toUpperCase()
 }
 
-// Xóa bài viết
 const deletePost = async () => {
     if (!confirm('Bạn có chắc muốn xóa bài viết này?')) return
 
@@ -80,7 +71,7 @@ const deletePost = async () => {
             emit('post-deleted', props.post.id)
         }
     } catch (error) {
-        console.error('❌ Lỗi xóa bài viết:', error)
+        console.error(' Lỗi xóa bài viết:', error)
         alert('Lỗi khi xóa bài viết: ' + error.message)
     } finally {
         isLoading.value = false
@@ -88,14 +79,12 @@ const deletePost = async () => {
     }
 }
 
-// Bắt đầu chỉnh sửa
 const startEditing = () => {
     editedContent.value = props.post.content
     isEditing.value = true
     hideDropdown()
 }
 
-// Lưu chỉnh sửa
 const saveEdit = async () => {
     if (!editedContent.value.trim()) return
 
@@ -110,20 +99,17 @@ const saveEdit = async () => {
             throw new Error(response.error || 'Lỗi khi cập nhật bài viết')
         }
     } catch (error) {
-        console.error('❌ Lỗi cập nhật bài viết:', error)
+        console.error(' Lỗi cập nhật bài viết:', error)
         alert('Lỗi khi cập nhật bài viết: ' + error.message)
     } finally {
         isLoading.value = false
     }
 }
-
-// Hủy chỉnh sửa
 const cancelEdit = () => {
     isEditing.value = false
     editedContent.value = props.post.content
 }
 
-// Like/unlike bài viết
 const likePost = async () => {
     if (isLoading.value) return
 
@@ -141,13 +127,12 @@ const likePost = async () => {
             emit('post-updated', updatedPost)
         }
     } catch (error) {
-        console.error('❌ Lỗi like bài viết:', error)
+        console.error('Lỗi like bài viết:', error)
     } finally {
         isLoading.value = false
     }
 }
 
-// Thêm bình luận
 const addComment = async () => {
     if (!newComment.value.trim() || isLoading.value) return
 
@@ -164,14 +149,13 @@ const addComment = async () => {
             newComment.value = ''
         }
     } catch (error) {
-        console.error('❌ Lỗi thêm bình luận:', error)
+        console.error('Lỗi thêm bình luận:', error)
         alert('Lỗi khi thêm bình luận: ' + error.message)
     } finally {
         isLoading.value = false
     }
 }
 
-// Xóa bình luận
 const deleteComment = async (commentId) => {
     if (!confirm('Bạn có chắc muốn xóa bình luận này?')) return
 
@@ -186,12 +170,11 @@ const deleteComment = async (commentId) => {
             emit('post-updated', updatedPost)
         }
     } catch (error) {
-        console.error('❌ Lỗi xóa bình luận:', error)
+        console.error(' Lỗi xóa bình luận:', error)
         alert('Lỗi khi xóa bình luận: ' + error.message)
     }
 }
 
-// Xử lý phím Enter khi comment
 const handleCommentKeypress = (event) => {
     if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault()
@@ -199,7 +182,6 @@ const handleCommentKeypress = (event) => {
     }
 }
 
-// Dropdown functions
 const toggleDropdown = () => {
     showDropdown.value = !showDropdown.value
 }
@@ -214,7 +196,6 @@ const handleClickOutside = (event) => {
     }
 }
 
-// Method để tính toán class cho ảnh
 const getImageColumnClass = (mediaCount) => {
     if (mediaCount === 1) return 'col-12'
     if (mediaCount === 2) return 'col-6'
@@ -223,23 +204,19 @@ const getImageColumnClass = (mediaCount) => {
     return 'col-4'
 }
 
-// Method mở ảnh lớn
 const openImageModal = (imageUrl) => {
     const fullUrl = imageUrl.startsWith('http') ? imageUrl : `http://localhost:3000${imageUrl}`
     window.open(fullUrl, '_blank')
 }
 
-// Method để lấy URL đầy đủ cho media
 const getFullMediaUrl = (url) => {
     if (!url) return ''
     return url.startsWith('http') ? url : `http://localhost:3000${url}`
 }
 
-// Xử lý lỗi ảnh
 const handleImageError = (event, user) => {
-    console.log('❌ Lỗi tải ảnh avatar:', event.target.src)
+    console.log(' Lỗi tải ảnh avatar:', event.target.src)
     event.target.style.display = 'none'
-    // Ẩn ảnh và hiển thị placeholder
     const parent = event.target.parentElement
     if (parent) {
         const placeholder = parent.querySelector('.avatar-placeholder')
@@ -257,11 +234,9 @@ onMounted(() => {
 <template>
     <div class="post-item card shadow-sm mb-4">
         <div class="card-body p-0">
-            <!-- Header bài viết -->
             <div class="post-header px-3 pt-3">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="d-flex align-items-center">
-                        <!-- Avatar user -->
                         <div class="user-avatar me-3 position-relative">
                             <div v-if="getAvatarUrl(post)" class="avatar-image">
                                 <img 
@@ -281,14 +256,12 @@ onMounted(() => {
                         </div>
                     </div>
 
-                    <!-- Dropdown menu (chỉ hiển thị cho chủ bài viết) -->
                     <div v-if="post.user_id === currentUser.id" class="dropdown-container position-relative">
                         <button class="btn btn-sm btn-outline-secondary border-0 rounded-circle" type="button"
                             style="width: 32px; height: 32px;" @click="toggleDropdown" :disabled="isLoading">
                             <i class="bi bi-three-dots"></i>
                         </button>
 
-                        <!-- Dropdown menu -->
                         <div v-if="showDropdown" class="dropdown-menu-custom show">
                             <a class="dropdown-item-custom" href="#" @click.prevent="startEditing">
                                 <i class="bi bi-pencil me-2"></i>Chỉnh sửa bài viết
@@ -301,8 +274,6 @@ onMounted(() => {
                     </div>
                 </div>
             </div>
-
-            <!-- Nội dung bài viết -->
             <div class="post-content px-3 pt-3">
                 <div v-if="isEditing" class="editing-area">
                     <textarea v-model="editedContent" class="form-control mb-2" rows="3"
@@ -318,8 +289,6 @@ onMounted(() => {
                 </div>
                 <p v-else class="mb-0 post-text">{{ post.content }}</p>
             </div>
-
-            <!-- Hiển thị ảnh -->
             <div v-if="post.images && post.images.length > 0" class="post-images mt-2">
                 <div class="row g-1 mx-0">
                     <div v-for="(image, index) in post.images" :key="index"
@@ -329,8 +298,6 @@ onMounted(() => {
                     </div>
                 </div>
             </div>
-
-            <!-- Hiển thị video -->
             <div v-if="post.videos && post.videos.length > 0" class="post-videos mt-2">
                 <div class="row g-1 mx-0">
                     <div v-for="(video, index) in post.videos" :key="index" class="col-12 video-container">
@@ -341,8 +308,6 @@ onMounted(() => {
                     </div>
                 </div>
             </div>
-
-            <!-- Thống kê -->
             <div class="post-stats px-3 pt-2">
                 <div class="d-flex justify-content-between text-muted">
                     <small v-if="post.likes_count > 0" class="d-flex align-items-center">
@@ -358,8 +323,6 @@ onMounted(() => {
                     </small>
                 </div>
             </div>
-
-            <!-- Actions -->
             <div class="post-actions px-3 py-2">
                 <div class="row text-center">
                     <div class="col">
@@ -380,12 +343,9 @@ onMounted(() => {
                 </div>
             </div>
 
-            <!-- Bình luận -->
             <div v-if="showComments" class="comments-section border-top">
-                <!-- Form bình luận -->
                 <div class="comment-form p-3">
                     <div class="d-flex align-items-center gap-2">
-                        <!-- Avatar current user trong comment form -->
                         <div class="user-avatar-sm position-relative">
                             <div v-if="getAvatarUrl(currentUser)" class="avatar-image-sm">
                                 <img 
@@ -410,12 +370,10 @@ onMounted(() => {
                         </button>
                     </div>
                 </div>
-
-                <!-- Danh sách bình luận -->
                 <div v-if="post.comments && post.comments.length > 0" class="comments-list px-3 pb-3">
                     <div v-for="comment in post.comments" :key="comment.id" class="comment-item mb-2">
                         <div class="d-flex gap-2">
-                            <!-- Avatar user comment -->
+    
                             <div class="user-avatar-sm position-relative flex-shrink-0">
                                 <div v-if="getAvatarUrl(comment)" class="avatar-image-sm">
                                     <img 

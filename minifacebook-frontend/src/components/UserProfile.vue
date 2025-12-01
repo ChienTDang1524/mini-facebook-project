@@ -14,14 +14,13 @@
         </div>
       </div>
       <div class="card-body">
-        <!-- Thông báo -->
+
         <div v-if="message" :class="['alert', messageType === 'success' ? 'alert-success' : 'alert-danger']">
           {{ message }}
         </div>
 
-        <!-- Form chỉnh sửa thông tin -->
         <form @submit.prevent="updateProfile">
-          <!-- Avatar -->
+ 
           <div class="mb-4 text-center">
             <div class="avatar-section">
               <div class="avatar-preview mb-3">
@@ -66,7 +65,6 @@
             </div>
           </div>
 
-          <!-- Họ tên -->
           <div class="mb-3">
             <label for="full_name" class="form-label">Họ và tên</label>
             <input 
@@ -78,7 +76,6 @@
             >
           </div>
 
-          <!-- Tên đăng nhập -->
           <div class="mb-3">
             <label for="username" class="form-label">Tên đăng nhập</label>
             <input 
@@ -94,7 +91,6 @@
             </div>
           </div>
 
-          <!-- Email -->
           <div class="mb-3">
             <label for="email" class="form-label">Email</label>
             <input 
@@ -110,7 +106,6 @@
             </div>
           </div>
 
-          <!-- Mật khẩu hiện tại (chỉ hiện khi muốn đổi mật khẩu) -->
           <div class="mb-3">
             <div class="form-check">
               <input 
@@ -126,7 +121,7 @@
           </div>
 
           <div v-if="changePassword" class="password-section">
-            <!-- Mật khẩu hiện tại -->
+
             <div class="mb-3">
               <label for="current_password" class="form-label">Mật khẩu hiện tại</label>
               <input 
@@ -141,7 +136,6 @@
               </div>
             </div>
 
-            <!-- Mật khẩu mới -->
             <div class="mb-3">
               <label for="new_password" class="form-label">Mật khẩu mới</label>
               <input 
@@ -156,7 +150,6 @@
               </div>
             </div>
 
-            <!-- Xác nhận mật khẩu mới -->
             <div class="mb-3">
               <label for="confirm_password" class="form-label">Xác nhận mật khẩu mới</label>
               <input 
@@ -172,7 +165,6 @@
             </div>
           </div>
 
-          <!-- Nút hành động -->
           <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
             <button 
               type="submit" 
@@ -193,10 +185,8 @@
 <script setup>
 import { ref, reactive, inject, onMounted } from 'vue'
 
-// Sử dụng provide/inject để truy cập currentUser
 const currentUser = inject('currentUser')
 
-// Refs
 const isLoading = ref(false)
 const message = ref('')
 const messageType = ref('')
@@ -205,10 +195,8 @@ const newAvatar = ref(null)
 const avatarPreview = ref('')
 const avatarInput = ref(null)
 
-// Emit để thông báo cho component cha
 const emit = defineEmits(['back'])
 
-// Form data
 const formData = reactive({
   full_name: '',
   username: '',
@@ -218,7 +206,6 @@ const formData = reactive({
   confirm_password: ''
 })
 
-// Errors
 const errors = reactive({
   username: '',
   email: '',
@@ -227,7 +214,6 @@ const errors = reactive({
   confirm_password: ''
 })
 
-// Lấy URL avatar đầy đủ
 const getAvatarUrl = (user) => {
   if (!user?.avatar) return ''
   
@@ -238,13 +224,11 @@ const getAvatarUrl = (user) => {
   }
 }
 
-// Hiển thị chữ cái đầu nếu không có avatar
 const getInitial = (user) => {
   if (!user) return 'U'
   return (user.full_name?.charAt(0) || user.username?.charAt(0) || 'U').toUpperCase()
 }
 
-// Khởi tạo form data từ currentUser
 onMounted(() => {
   if (currentUser.value) {
     formData.full_name = currentUser.value.full_name || ''
@@ -253,17 +237,14 @@ onMounted(() => {
   }
 })
 
-// Xử lý thay đổi avatar
 const handleAvatarChange = (event) => {
   const file = event.target.files[0]
   if (file) {
-    // Kiểm tra kích thước file (tối đa 2MB)
+
     if (file.size > 2 * 1024 * 1024) {
       showMessage('Kích thước ảnh không được vượt quá 2MB', 'error')
       return
     }
-
-    // Kiểm tra loại file
     if (!file.type.startsWith('image/')) {
       showMessage('Vui lòng chọn file ảnh hợp lệ', 'error')
       return
@@ -274,7 +255,6 @@ const handleAvatarChange = (event) => {
   }
 }
 
-// Xóa avatar đã chọn
 const removeAvatar = () => {
   newAvatar.value = null
   avatarPreview.value = ''
@@ -283,7 +263,6 @@ const removeAvatar = () => {
   }
 }
 
-// Hiển thị thông báo
 const showMessage = (msg, type = 'success') => {
   message.value = msg
   messageType.value = type
@@ -292,25 +271,21 @@ const showMessage = (msg, type = 'success') => {
   }, 5000)
 }
 
-// Xóa lỗi
 const clearErrors = () => {
   Object.keys(errors).forEach(key => {
     errors[key] = ''
   })
 }
 
-// Validate form
 const validateForm = () => {
   clearErrors()
   let isValid = true
 
-  // Validate username
   if (!formData.username.trim()) {
     errors.username = 'Tên đăng nhập không được để trống'
     isValid = false
   }
 
-  // Validate email
   if (!formData.email.trim()) {
     errors.email = 'Email không được để trống'
     isValid = false
@@ -319,7 +294,6 @@ const validateForm = () => {
     isValid = false
   }
 
-  // Validate password nếu đang đổi mật khẩu
   if (changePassword.value) {
     if (!formData.current_password) {
       errors.current_password = 'Vui lòng nhập mật khẩu hiện tại'
@@ -340,7 +314,6 @@ const validateForm = () => {
   return isValid
 }
 
-// Cập nhật thông tin
 const updateProfile = async () => {
   if (!validateForm()) return
 
@@ -348,8 +321,7 @@ const updateProfile = async () => {
 
   try {
     const token = localStorage.getItem('minifacebook_token')
-    
-    // Tạo FormData để gửi file
+
     const submitData = new FormData()
     submitData.append('full_name', formData.full_name)
     submitData.append('username', formData.username)
@@ -362,7 +334,6 @@ const updateProfile = async () => {
       }
     }
 
-    // Thêm avatar nếu có
     if (newAvatar.value) {
       submitData.append('avatar', newAvatar.value)
     }
@@ -379,14 +350,12 @@ const updateProfile = async () => {
 
     if (data.success) {
       showMessage('Cập nhật thông tin thành công!', 'success')
-      
-      // Cập nhật currentUser
+     
       if (data.user) {
         currentUser.value = { ...currentUser.value, ...data.user }
         localStorage.setItem('minifacebook_user', JSON.stringify(data.user))
       }
 
-      // Reset form password
       if (changePassword.value) {
         formData.current_password = ''
         formData.new_password = ''
@@ -394,12 +363,10 @@ const updateProfile = async () => {
         changePassword.value = false
       }
 
-      // Reset avatar
       removeAvatar()
     } else {
       showMessage(data.error || 'Có lỗi xảy ra', 'error')
       
-      // Hiển thị lỗi từ server
       if (data.errors) {
         Object.keys(data.errors).forEach(key => {
           if (errors[key] !== undefined) {
@@ -416,7 +383,6 @@ const updateProfile = async () => {
   }
 }
 
-// Quay lại
 const goBack = () => {
   emit('back')
 }
